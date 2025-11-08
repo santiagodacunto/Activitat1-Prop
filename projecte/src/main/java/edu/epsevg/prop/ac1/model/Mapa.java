@@ -199,17 +199,65 @@ public class Mapa {
         return nou;
     }
 
-    /** 
-     * Obtenir els moviments possibles des de l'estat actual
+    /** * Obtenir els moviments possibles des de l'estat actual
      * @return la llista de moviments possibles des de l'estat actual:
-     *  - per cada agent (1..k) i cada direcció valida (que no sigui mur, si és una porta ha de ser obrible i sense col·lisió amb d'altres agents)
-     *  - indica recullClau=true si el destí té una clau que encara no s'ha recollit
+     * - per cada agent (1..k) i cada direcció valida (que no sigui mur, si és una porta ha de ser obrible i sense col·lisió amb d'altres agents)
+     * - indica recullClau=true si el destí té una clau que encara no s'ha recollit
      */
     public List<Moviment> getAccionsPossibles() {
         List<Moviment> res = new ArrayList<>();
-        // ===============================================
-        //@TODO: A IMPLEMENTAR !!!!!!
-        // ===============================================
+        
+        // Iterem per cada agent (recorda que agentId es 1-based)
+        for (int i = 0; i < agents.size(); i++) {
+            int agentId = i + 1;
+            Posicio posActual = agents.get(i);
+
+            // Iterem per cada direcció possible
+            for (Direccio d : Direccio.values()) {
+                Posicio posDesti = posActual.translate(d);
+                int cellDesti = getCell(posDesti); // Aquest mètode ja gestiona els límits del mapa
+
+                // --- INICI DE LA VALIDACIÓ ---
+                
+                // 1. Comprovar Paret
+                if (cellDesti == PARET) {
+                    continue; // Moviment il·legal, passem a la següent direcció
+                }
+
+                // 2. Comprovar Porta Tancada
+                if (Character.isUpperCase(cellDesti)) {
+                    if (!portaObrible((char) cellDesti)) {
+                        continue; // Porta tancada, moviment il·legal
+                    }
+                }
+                
+                // 3. Comprovar Col·lisions amb altres agents
+                boolean colisio = false;
+                for (int j = 0; j < agents.size(); j++) {
+                    if (i == j) continue; // No comprovem amb nosaltres mateixos
+                    
+                    if (agents.get(j).equals(posDesti)) {
+                        colisio = true; // El destí està ocupat per l'agent 'j'
+                        break;
+                    }
+                }
+                if (colisio) {
+                    continue; // Moviment il·legal
+                }
+                
+                // --- FI DE LA VALIDACIÓ ---
+                // Si hem arribat aquí, el moviment és VÀLID.
+
+                // Mirem si al destí hi ha una clau que no tenim
+                boolean recullClau = false;
+                if (Character.isLowerCase(cellDesti) && !teClau((char) cellDesti)) {
+                    recullClau = true;
+                }
+
+                // Afegim el moviment vàlid a la llista
+                res.add(new Moviment(agentId, d, recullClau));
+            }
+        }
         return res;
     }
 
@@ -224,21 +272,34 @@ public class Mapa {
 
     @Override
     public boolean equals(Object o) {
+        // Comprovació estàndard d'equals
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        // Comparem els camps que defineixen l'estat
+        Mapa mapa = (Mapa) o;
         
-        // ===============================================
-        //@TODO: A IMPLEMENTAR !!!!!!
-        // ===============================================
+        // 1. Comparem la màscara de claus
+        if (clausMask != mapa.clausMask) return false;
         
-        return true;
+        // 2. Comparem la llista d'agents
+        // (Això funciona pq la classe Posicio té el seu propi equals)
+        if (!agents.equals(mapa.agents)) return false;
+
+        // 3. Comparem el grid (necessari pq les claus desapareixen)
+        // 'Arrays.deepEquals' serveix per comparar arrays 2D
+        return java.util.Arrays.deepEquals(grid, mapa.grid);
     }
 
     @Override
-    public int hashCode() {
-        // ===============================================
-        //@TODO: A IMPLEMENTAR !!!!!!
-        // ===============================================
+    public int hashCode() {  
+        // Hem de generar un hashCode a partir dels mateixos camps
+        // que hem fet servir a l'equals.
         
-        return 0;
+        int result = agents.hashCode();
+        result = 31 * result + clausMask;
+        result = 31 * result + java.util.Arrays.deepHashCode(grid);
+        return result;
     }
 
     @Override
