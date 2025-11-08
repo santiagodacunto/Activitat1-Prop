@@ -1,0 +1,12 @@
+﻿# Maven / Java
+target/
+*.class
+*.log
+/.idea/
+/.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# SO
+Thumbs.db
+.DS_Store
