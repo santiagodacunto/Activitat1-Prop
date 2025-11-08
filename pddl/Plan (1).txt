@@ -1,0 +1,4 @@
+(move-and-pickup-key a2 c2_2 c3_2 k_a)
+(move-to-empty-or-exit a1 c4_5 c4_6)
+(move-through-door a1 c4_6 c4_7 d_a k_a)
+(move-to-empty-or-exit a1 c4_7 c3_7)

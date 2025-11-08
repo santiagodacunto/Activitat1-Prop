@@ -1,40 +1,69 @@
 (define (domain locks-keys)
-  (:requirements :strips :typing :adl)
-  (:types agent cell key door)
+  (:requirements :strips :typing)
+
+  (:types
+    agent cell key door
+  )
 
   (:predicates
-    (at ?a - agent ?c - cell)          ; el agente ?a está en la celda ?c
-    (adj ?x - cell ?y - cell)          ; celdas adyacentes (movimiento permitido)
-    (goal-cell ?c - cell)              ; celda de salida
-    (key-at ?k - key ?c - cell)        ; la llave ?k está en la celda ?c
-    (have ?k - key)                    ; alguna agente ya tiene la llave ?k
-    (door-at ?d - door ?c - cell)      ; en la celda ?c hay una puerta ?d
-    (locked ?d - door)                 ; puerta cerrada
-    (open ?d - door)                   ; puerta abierta
-    (opens ?k - key ?d - door)         ; la llave ?k abre la puerta ?d
+    (at ?a - agent ?c - cell)            ; El agente ?a está en la celda ?c
+    (connected ?c1 - cell ?c2 - cell)    ; La celda ?c1 está conectada con ?c2 (adyacentes)
+    (is-wall ?c - cell)                  ; La celda ?c es una pared
+    (key-at ?k - key ?c - cell)          ; La llave ?k está en la celda ?c
+    (door-at ?d - door ?c - cell)        ; La puerta ?d está en la celda ?c
+    (has-key ?k - key)                   ; Los agentes tienen la llave ?k
+    (unlocks ?k - key ?d - door)         ; La llave ?k abre la puerta ?d
+    (is-exit ?c - cell)                  ; La celda ?c es la salida
   )
 
-  (:action move
+  ; Acción 1: Moverse a una celda vacía o a la salida
+  (:action move-to-empty-or-exit
     :parameters (?a - agent ?from - cell ?to - cell)
     :precondition (and
-      (at ?a ?from) (adj ?from ?to)
-      (or
-        (not (exists (?d - door) (door-at ?d ?to)))          ; no hay puerta
-        (exists (?d - door) (and (door-at ?d ?to) (open ?d))) ; o la puerta está abierta
-      )
+      (at ?a ?from)
+      (connected ?from ?to)
+      (not (is-wall ?to))
+      (not (exists (?a2 - agent) (at ?a2 ?to)))         ; No hay otro agente (colisiones)
+      (not (exists (?k - key) (key-at ?k ?to)))         ; No hay una llave
+      (not (exists (?d - door) (door-at ?d ?to)))       ; No hay una puerta
     )
-    :effect (and (not (at ?a ?from)) (at ?a ?to))
+    :effect (and
+      (not (at ?a ?from))
+      (at ?a ?to)
+    )
   )
 
-  (:action pick-key
-    :parameters (?a - agent ?k - key ?c - cell)
-    :precondition (and (at ?a ?c) (key-at ?k ?c))
-    :effect (and (have ?k) (not (key-at ?k ?c)))
+  ; Acción 2: Moverse a una celda con llave y cogerla (en un solo paso)
+  (:action move-and-pickup-key
+    :parameters (?a - agent ?from - cell ?to - cell ?k - key)
+    :precondition (and
+      (at ?a ?from)
+      (connected ?from ?to)
+      (key-at ?k ?to)
+      (not (exists (?a2 - agent) (at ?a2 ?to)))         ; No hay otro agente
+    )
+    :effect (and
+      (not (at ?a ?from))
+      (at ?a ?to)
+      (not (key-at ?k ?to))
+      (has-key ?k)                                     ; La llave es compartida
+    )
   )
 
-  (:action open-door
-    :parameters (?a - agent ?k - key ?d - door ?c - cell)
-    :precondition (and (at ?a ?c) (door-at ?d ?c) (locked ?d) (have ?k) (opens ?k ?d))
-    :effect (and (open ?d) (not (locked ?d)))
+  ; Acción 3: Moverse a través de una puerta (si tenemos la llave)
+  (:action move-through-door
+    :parameters (?a - agent ?from - cell ?to - cell ?d - door ?k - key)
+    :precondition (and
+      (at ?a ?from)
+      (connected ?from ?to)
+      (door-at ?d ?to)
+      (unlocks ?k ?d)
+      (has-key ?k)                                     ; Requisito para cruzar
+      (not (exists (?a2 - agent) (at ?a2 ?to)))         ; No hay otro agente
+    )
+    :effect (and
+      (not (at ?a ?from))
+      (at ?a ?to)
+    )
   )
 )
