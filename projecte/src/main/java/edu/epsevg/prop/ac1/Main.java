@@ -1,6 +1,7 @@
 package edu.epsevg.prop.ac1;
 
 import edu.epsevg.prop.ac1.cerca.*;
+import edu.epsevg.prop.ac1.cerca.heuristica.Heuristica;
 import edu.epsevg.prop.ac1.cerca.heuristica.HeuristicaAvancada;
 import edu.epsevg.prop.ac1.cerca.heuristica.HeuristicaBasica;
 import edu.epsevg.prop.ac1.model.Mapa;
@@ -23,44 +24,49 @@ public class Main {
         List<String[]> rows = new ArrayList<>();
         rows.add(new String[] {"Algoritme","Mapa","Trobat","Longitud","NodesExplorats","NodesTallats","MemoriaPic","TempsMs"});
         
+        HeuristicaBasica hBasica = new HeuristicaBasica();
     
         System.out.println("==================================================================");
         System.out.println("==                        MAPA A                                ==");
-        System.out.println("==================================================================");        
+        System.out.println("==================================================================");  
+        Heuristica hAvancadaA = new HeuristicaAvancada(mapaA);      
         executarIRecopilarResultats("BFS", new CercaBFS(usarLNT), mapaA, "mapA", rows);
         executarIRecopilarResultats("DFS", new CercaDFS(usarLNT), mapaA, "mapA", rows);
         executarIRecopilarResultats("IDS", new CercaIDS(usarLNT), mapaA, "mapA", rows);
-        executarIRecopilarResultats("A* Basica", new CercaAStar(usarLNT, new HeuristicaBasica()), mapaA, "mapA", rows);
-        executarIRecopilarResultats("A* Avancada", new CercaAStar(usarLNT, new HeuristicaAvancada()), mapaA, "mapA", rows);
-
+        executarIRecopilarResultats("A* Basica", new CercaAStar(usarLNT, hBasica), mapaA, "mapA", rows);
+        executarIRecopilarResultats("A* Avancada", new CercaAStar(usarLNT, hAvancadaA), mapaA, "mapA", rows); 
+        
+       
         System.out.println("==================================================================");
         System.out.println("==                        MAPA B                                ==");
         System.out.println("==================================================================");
+        Heuristica hAvancadaB = new HeuristicaAvancada(mapaB);
         executarIRecopilarResultats("BFS", new CercaBFS(usarLNT), mapaB, "mapB", rows);
         executarIRecopilarResultats("DFS", new CercaDFS(usarLNT), mapaB, "mapB", rows);
         executarIRecopilarResultats("IDS", new CercaIDS(usarLNT), mapaB, "mapB", rows);
-        executarIRecopilarResultats("A* Basica", new CercaAStar(usarLNT, new HeuristicaBasica()), mapaB, "mapB", rows);
-        executarIRecopilarResultats("A* Avancada", new CercaAStar(usarLNT, new HeuristicaAvancada()), mapaB, "mapB", rows);
+        executarIRecopilarResultats("A* Basica", new CercaAStar(usarLNT, hBasica), mapaB, "mapB", rows);
+        executarIRecopilarResultats("A* Avancada", new CercaAStar(usarLNT, hAvancadaB), mapaB, "mapB", rows); 
 
+     
         System.out.println("==================================================================");
         System.out.println("==                        MAPA C                                ==");
         System.out.println("==================================================================");
+        Heuristica hAvancadaC = new HeuristicaAvancada(mapaC);
         executarIRecopilarResultats("BFS", new CercaBFS(usarLNT), mapaC, "mapC", rows);
         executarIRecopilarResultats("DFS", new CercaDFS(usarLNT), mapaC, "mapC", rows);
         executarIRecopilarResultats("IDS", new CercaIDS(usarLNT), mapaC, "mapC", rows);
-        executarIRecopilarResultats("A* Basica", new CercaAStar(usarLNT, new HeuristicaBasica()), mapaC, "mapC", rows);
-        executarIRecopilarResultats("A* Avancada", new CercaAStar(usarLNT, new HeuristicaAvancada()), mapaC, "mapC", rows);
-        
+        executarIRecopilarResultats("A* Basica", new CercaAStar(usarLNT, hBasica), mapaC, "mapC", rows);
+        executarIRecopilarResultats("A* Avancada", new CercaAStar(usarLNT, hAvancadaC), mapaC, "mapC", rows); 
+
         System.out.println("==================================================================");
         System.out.println("==                        MAPA D                                ==");
         System.out.println("==================================================================");
+        Heuristica hAvancadaD = new HeuristicaAvancada(mapaD);
         executarIRecopilarResultats("BFS", new CercaBFS(usarLNT), mapaD, "mapD", rows);
         executarIRecopilarResultats("DFS", new CercaDFS(usarLNT), mapaD, "mapD", rows);
-        executarIRecopilarResultats("IDS", new CercaIDS(usarLNT), mapaD, "mapD", rows);
-        executarIRecopilarResultats("A* Basica", new CercaAStar(usarLNT, new HeuristicaBasica()), mapaD, "mapD", rows);
-        executarIRecopilarResultats("A* Avancada", new CercaAStar(usarLNT, new HeuristicaAvancada()), mapaD, "mapD", rows);
-        
-        
+        // executarIRecopilarResultats("IDS", new CercaIDS(usarLNT), mapaD, "mapD", rows);
+        executarIRecopilarResultats("A* Basica", new CercaAStar(usarLNT, hBasica), mapaD, "mapD", rows);
+        executarIRecopilarResultats("A* Avancada", new CercaAStar(usarLNT, hAvancadaD), mapaD, "mapD", rows); 
         
         CsvWriter cw = new CsvWriter("results.csv");
         cw.write(rows);
@@ -104,3 +110,4 @@ public class Main {
         System.out.println("\t"+nom + " -> " + r);
     }
 }
+
