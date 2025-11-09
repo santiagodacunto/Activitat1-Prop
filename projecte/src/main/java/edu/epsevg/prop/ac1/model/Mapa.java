@@ -90,6 +90,7 @@ public class Mapa {
         this.agents = new ArrayList<>();
         for (Posicio p : other.agents) this.agents.add(new Posicio(p.x, p.y));
         this.clausMask = other.clausMask;
+        this.sortida = other.sortida;
     }
 
     /**
@@ -128,7 +129,7 @@ public class Mapa {
     /**
      * @return el valor de la cella (veure constants PARET, ESPAI, SORTIDA)
      */
-    private int getCell(Posicio p) {
+    public int getCell(Posicio p) {
         if (p.x < 0 || p.x >= n || p.y < 0 || p.y >= m) return PARET;
         return grid[p.x][p.y];
     }
@@ -325,4 +326,61 @@ public class Mapa {
     
     //@TODO: (opcionalment) el que cregueu convenient per ampliar la classe.
 
+    /** * Mètode d'utilitat per l'heurística.
+     * @return Una llista de Posicions de totes les claus que encara no s'han recollit.
+     */
+    public List<Posicio> getClausPendents() {
+        List<Posicio> claus = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                // Accedim directament al grid privat, pq estem dins de Mapa.java
+                int cell = grid[i][j]; 
+                
+                // Si la cel·la és una lletra minúscula, és una clau
+                if (Character.isLowerCase(cell)) {
+                    // Mirem si és una clau que NO tenim
+                    if (!teClau((char) cell)) {
+                        claus.add(new Posicio(i, j));
+                    }
+                }
+            }
+        }
+        return claus;
+    }
+
+    /**
+     * MÈTODE D'AJUDA PER L'HEURÍSTICA AVANÇADA (PRE-CÀLCUL)
+     * Fa una cerca BFS des d'un punt 'inici' i retorna un grid on
+     * cada cel·la té la distància real (amb parets) des de 'inici'.
+     * @param inici La posició des d'on calcular les distàncies.
+     * @return Un grid int[n][m] amb les distàncies. -1 si és inaccessible.
+     */
+    public int[][] getMapaDistanciesReals(Posicio inici) {
+        int[][] distMap = new int[n][m];
+        for (int i = 0; i < n; i++) {
+            java.util.Arrays.fill(distMap[i], -1); // -1 = No visitat / Inaccessible
+        }
+
+        java.util.Queue<Posicio> queue = new java.util.LinkedList<>();
+        
+        queue.add(inici);
+        distMap[inici.x][inici.y] = 0;
+
+        while (!queue.isEmpty()) {
+            Posicio actual = queue.poll();
+
+            for (Direccio d : Direccio.values()) {
+                Posicio desti = actual.translate(d);
+                int cell = getCell(desti); // Aquest mètode ja gestiona parets i límits
+
+                // Si és un lloc vàlid (no paret) I no l'hem visitat
+                if (cell != PARET && distMap[desti.x][desti.y] == -1) {
+
+                    distMap[desti.x][desti.y] = distMap[actual.x][actual.y] + 1;
+                    queue.add(desti);
+                }
+            }
+        }
+        return distMap;
+    }
 }
