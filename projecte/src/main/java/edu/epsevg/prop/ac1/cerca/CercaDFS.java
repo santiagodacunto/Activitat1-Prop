@@ -75,11 +75,6 @@ public class CercaDFS extends Cerca {
             // 4. Generem els estats fills (successors)
             List<Moviment> accions = nodeActual.estat.getAccionsPossibles();
             
-            // Important: Invertim les accions abans d'afegir-les a la pila.
-            // Això fa que la cerca explori en un ordre més "natural" (AMUNT, AVALL...),
-            // ja que la primera acció (AMUNT) serà l'última en entrar i la primera en sortir.
-            Collections.reverse(accions);
-            
             for (Moviment accio : accions) {
                 Mapa estatFill = nodeActual.estat.mou(accio);
                 int profunditatFilla = nodeActual.profunditat + 1;
