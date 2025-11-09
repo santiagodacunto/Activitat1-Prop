@@ -10,11 +10,11 @@ import java.util.*;
  * i bitmask de claus.
  *
  * Codifiquem:
- *  - PARET = -1
- *  - ESPAI = 0
- *  - SORTIDA = -2
- *  - claus: ascii 'a'..'z' (valors positius > 0)
- *  - portes: ascii 'A'..'Z' (valors positius > 0)
+ * - PARET = -1
+ * - ESPAI = 0
+ * - SORTIDA = -2
+ * - claus: ascii 'a'..'z' (valors positius > 0)
+ * - portes: ascii 'A'..'Z' (valors positius > 0)
  */
 public class Mapa {
     private final int n;
@@ -77,9 +77,9 @@ public class Mapa {
         if(agents.size()==0) throw new RuntimeException("Agents no definits.");
     }
 
-    /** 
-     * Constructor còpia 
+    /** * Constructor còpia PÚBLIC (LENT)
      * Fa una "Deep copy" del mapa (duplica en memòria i copia tots els valors d'un a l'altre) 
+     * Es manté per compatibilitat, però 'mou' ja no l'utilitza.
      */
     public Mapa(Mapa other) {
         this.n = other.n;
@@ -92,6 +92,31 @@ public class Mapa {
         this.clausMask = other.clausMask;
         this.sortida = other.sortida;
     }
+
+    /** * Constructor còpia PRIVAT (Optimitzat)
+     * S'usa per 'mou'. Si 'deepCopyGrid' és false, comparteix la referència del grid (RÀPID).
+     * Si 'deepCopyGrid' és true, fa una còpia profunda del grid (LENT, només quan agafem clau).
+     */
+    private Mapa(Mapa other, boolean deepCopyGrid) {
+        this.n = other.n;
+        this.m = other.m;
+        this.sortida = other.sortida;
+        this.clausMask = other.clausMask;
+        
+        // Agents sempre es copia (deep) pq almenys 1 es mourà
+        this.agents = new ArrayList<>();
+        for (Posicio p : other.agents) this.agents.add(new Posicio(p.x, p.y));
+        
+        if (deepCopyGrid) {
+            // Còpia profunda (lenta) -> S'agafarà una clau
+            this.grid = new int[n][m];
+            for (int i = 0; i < n; i++) System.arraycopy(other.grid[i], 0, this.grid[i], 0, m);
+        } else {
+            // Còpia per referència (ràpida) -> No s'agafa clau
+            this.grid = other.grid;
+        }
+    }
+
 
     /**
      * Número de columnes
@@ -112,9 +137,9 @@ public class Mapa {
     
     /**
      * @return la màscara binària en format int de les claus. Cada clau és un bit, començant per la a (bit menys significant),b,c...
-     *    P.ex. Si hi ha 3 claus, a, b i c, i tenim agafada la b i la c, la màscara val 6 (110 en binari)
-     *          cba
-     *          110 
+     * P.ex. Si hi ha 3 claus, a, b i c, i tenim agafada la b i la c, la màscara val 6 (110 en binari)
+     * cba
+     * 110 
      */
     public int getClausMask() { return clausMask; }
 
@@ -162,41 +187,58 @@ public class Mapa {
         return teClau(key);
     }
 
-    /** 
-     * Aplica el moviment SOBRE UNA CÒPIA (no altera el mapa actual)
-     * @return  la nova instància amb el moviment
-     * ja fet.
+    /** * Aplica el moviment SOBRE UNA CÒPIA (no altera el mapa actual)
+     * VERSIÓ OPTIMITZADA: Fa servir el constructor privat.
+     * @return  la nova instància amb el moviment ja fet.
      */
     public Mapa mou(Moviment acc) {
-        Mapa nou = new Mapa(this);
+        // --- 1. VALIDACIONS (sobre 'this', l'estat actual) ---
         int aid = acc.getAgentId();
-        if (aid < 1 || aid > nou.agents.size()) throw new IllegalArgumentException("Agent id invalid");
-        Posicio actual = nou.agents.get(aid - 1);
+        if (aid < 1 || aid > agents.size()) throw new IllegalArgumentException("Agent id invalid");
+        
+        Posicio actual = agents.get(aid - 1);
         Posicio dest = actual.translate(acc.getDireccio());
 
-        int cell = nou.getCell(dest);
+        int cell = getCell(dest);
         if (cell == PARET) throw new IllegalArgumentException("Moviment cap a mur");
         if (Character.isUpperCase(cell)) {
             // porta
-            if (!nou.portaObrible((char) cell)) throw new IllegalArgumentException("Porta tancada");
+            if (!portaObrible((char) cell)) throw new IllegalArgumentException("Porta tancada");
         }
         // no permetre col·lisions
-        for (int i = 0; i < nou.agents.size(); i++) {
+        for (int i = 0; i < agents.size(); i++) {
             if (i == aid-1) continue;
-            Posicio p = nou.agents.get(i);
+            Posicio p = agents.get(i);
             if (p.equals(dest)) throw new IllegalArgumentException("Colisio amb altre agent");
         }
-        // aplicar moviment
-        nou.agents.set(aid - 1, dest);
-        // si hi ha clau i no la teniem, recollir-la (si acc.isRecullClau() es true o si la cell té clau)
+        
+        // --- 2. COMPROVAR SI CALDRÀ MODIFICAR EL GRID ---
+        boolean recolliraClau = false;
+        char key = 0;
         if (Character.isLowerCase(cell)) {
-            char key = (char) cell;
-            if (!nou.teClau(key)) {
-                // recollir
-                nou.setClauRecollida(key);                
-                nou.grid[dest.x][dest.y] = ESPAI;
+            key = (char) cell;
+            if (!teClau(key)) {
+                recolliraClau = true;
             }
         }
+        
+        // --- 3. CREAR LA CÒPIA (OPTIMITZADA) ---
+        // Si 'recolliraClau' és true, necessitem una còpia profunda del grid (pq el modificarem)
+        // Si 'recolliraClau' és false, compartim la referència del grid (ràpid)
+        Mapa nou = new Mapa(this, recolliraClau);
+
+        // --- 4. APLICAR CANVIS A LA CÒPIA 'nou' ---
+        
+        // Sempre movem l'agent
+        nou.agents.set(aid - 1, dest);
+        
+        // Si havíem de recollir clau, ho fem ara sobre 'nou'
+        if (recolliraClau) {
+            nou.setClauRecollida(key);
+            // Com que 'nou' té una còpia única del grid, podem modificar-la
+            nou.grid[dest.x][dest.y] = ESPAI;
+        }
+        
         return nou;
     }
 
@@ -262,8 +304,7 @@ public class Mapa {
         return res;
     }
 
-    /** 
-     * Permet saber si algú ha arribat a la sortida
+    /** * Permet saber si algú ha arribat a la sortida
      * @return true si algun agent ha arribat a la sortida 
      */
     public boolean esMeta() {
@@ -271,6 +312,10 @@ public class Mapa {
         return false;
     }
 
+    // =================================================================
+    // VERSIÓ OPTIMITZADA DE EQUALS I HASHCODE
+    // =================================================================
+    
     @Override
     public boolean equals(Object o) {
         // Comprovació estàndard d'equals
@@ -280,28 +325,25 @@ public class Mapa {
         // Comparem els camps que defineixen l'estat
         Mapa mapa = (Mapa) o;
         
-        // 1. Comparem la màscara de claus
-        if (clausMask != mapa.clausMask) return false;
-        
-        // 2. Comparem la llista d'agents
-        // (Això funciona pq la classe Posicio té el seu propi equals)
-        if (!agents.equals(mapa.agents)) return false;
-
-        // 3. Comparem el grid (necessari pq les claus desapareixen)
-        // 'Arrays.deepEquals' serveix per comparar arrays 2D
-        return java.util.Arrays.deepEquals(grid, mapa.grid);
+        // L'estat es defineix NOMÉS per la posició dels agents i les claus recollides.
+        // El 'grid' és redundant, ja que els seus canvis (claus que desapareixen)
+        // són un resultat directe i determinista del 'clausMask'.
+        // Comprovar el 'grid' (amb deepEquals) és el que feia el codi lent.
+        return clausMask == mapa.clausMask &&
+               agents.equals(mapa.agents);
     }
 
     @Override
     public int hashCode() {  
-        // Hem de generar un hashCode a partir dels mateixos camps
-        // que hem fet servir a l'equals.
-        
-        int result = agents.hashCode();
-        result = 31 * result + clausMask;
-        result = 31 * result + java.util.Arrays.deepHashCode(grid);
-        return result;
+        // Ha de ser consistent amb 'equals' (només fer servir els mateixos camps).
+        // Fem servir 'Objects.hash' que és eficient i gestiona nuls.
+        return Objects.hash(agents, clausMask);
     }
+
+    // =================================================================
+    // FI DE LA OPTIMITZACIÓ
+    // =================================================================
+
 
     @Override
     public String toString() {
@@ -312,8 +354,7 @@ public class Mapa {
         return sb.toString();
     }
 
-    /** 
-     * @return la posició de sortida del mapa
+    /** * @return la posició de sortida del mapa
      */
     public Posicio getSortidaPosicio() {
         return sortida;
