@@ -39,52 +39,41 @@ public class CercaIDS extends Cerca {
         
         for (int limit = 0; limit < MAX_ITERATIONS; limit++) {
             
-            // Per cada iteració, fem una cerca en profunditat limitada (DFS)
-            // Totes les estadístiques (explorats, tallats) s'acumulen al 'rc' principal.
-            
-            // Buidem la solució anterior (si n'hi havia d'una iteració prèvia)
+            // Buidem la solució anterior (si n'hi havia)
             rc.setCami(null); 
             
-            // Fem la cerca per a aquest límit
+            // Cridem la cerca interna per a aquest límit
+            // AQUESTA VERSIÓ NO PASSA UNA LNT PERSISTENT
+            // Acumula les estadístiques directament al 'rc' principal
             cercaDFSInterna(inicial, rc, limit);
             
             // Si la cerca interna ha trobat un camí, ja l'ha posat a 'rc'.
             if (rc.getCami() != null) {
                 return; // Solució trobada i desada a 'rc'.
             }
-            
-            // Comprovem si hem d'aturar-nos (optimització)
-            // Si hem explorat i no hem trobat solució, PERÒ
-            // el nombre de nodes explorats no ha augmentat,
-            // significa que l'arbre s'ha explorat sencer i no hi ha solució.
-            
-            // (Això és una mica complicat de fer bé sense un 'hitLimit' flag)
-            // Deixem que el bucle for s'acabi si no troba res.
-            
         }
     }
 
     /**
      * Fa una cerca DFS amb un límit de profunditat donat.
-     * Modifica el 'rc' directament si troba solució.
-     * Acumula estadístiques a 'rc'.
+     * CREA LA SEVA PRÒPIA MEMÒRIA (LNT) LOCAL CADA VEGADA.
      */
     private void cercaDFSInterna(Mapa inicial, ResultatCerca rc, int limit) {
         
         // Les llistes LNO i LNT són locals per a CADA iteració
         LinkedList<NodeCerca> lno = new LinkedList<>();
-        HashMap<Mapa, Integer> lnt = new HashMap<>();
+        HashMap<Mapa, Integer> lnt = new HashMap<>(); // <-- LNT LOCAL!
 
         NodeCerca nodeInicial = new NodeCerca(inicial, null, null, 0);
         lno.push(nodeInicial);
         if (usarLNT) {
             lnt.put(inicial, 0);
         }
-        rc.updateMemoria(1); // La memòria pic es mantindrà actualitzada al 'rc'
+        rc.updateMemoria(1); // Actualitza la memòria pic
 
         while (!lno.isEmpty()) {
             NodeCerca nodeActual = lno.pop();
-            rc.incNodesExplorats(); // Acumulem al 'rc' principal
+            rc.incNodesExplorats(); // Acumula al 'rc' principal
 
             if (nodeActual.estat.esMeta()) {
                 rc.setCami(reconstruirCami(nodeActual));
@@ -93,12 +82,12 @@ public class CercaIDS extends Cerca {
 
             // Tallem si arribem al límit d'aquesta iteració
             if (nodeActual.profunditat >= limit) {
-                rc.incNodesTallats(); // Acumulem al 'rc' principal
-                continue; // Tallem per profunditat
+                rc.incNodesTallats(); // Acumula al 'rc' principal
+                continue; 
             }
 
             List<Moviment> accions = nodeActual.estat.getAccionsPossibles();
-            Collections.reverse(accions); // Per ordre d'exploració
+            Collections.reverse(accions); 
 
             for (Moviment accio : accions) {
                 Mapa estatFill = nodeActual.estat.mou(accio);
@@ -107,6 +96,8 @@ public class CercaIDS extends Cerca {
                 
                 boolean tallar = false;
                 if (usarLNT) {
+                    // Com que 'lnt' és local, només talla si ho troba
+                    // en un camí més curt *en aquesta mateixa iteració*
                     if (lnt.containsKey(estatFill) && lnt.get(estatFill) <= profunditatFilla) {
                         tallar = true;
                     }
@@ -117,7 +108,7 @@ public class CercaIDS extends Cerca {
                 }
 
                 if (tallar) {
-                    rc.incNodesTallats(); // Acumulem al 'rc' principal
+                    rc.incNodesTallats(); // Acumula al 'rc' principal
                     continue;
                 }
 
@@ -127,16 +118,11 @@ public class CercaIDS extends Cerca {
                 }
                 
                 int memActual = lno.size() + (usarLNT ? lnt.size() : 0);
-                rc.updateMemoria(memActual); // Actualitzem memòria pic
+                rc.updateMemoria(memActual);
             }
         }
-        
-        // No s'ha trobat solució en aquest límit
     }
     
-    /**
-     * Mètode auxiliar per comprovar si un estat ja existeix al camí actual
-     */
     private boolean estaAlCami(NodeCerca node, Mapa estat) {
         NodeCerca actual = node;
         while (actual != null) {
@@ -148,9 +134,6 @@ public class CercaIDS extends Cerca {
         return false;
     }
 
-    /**
-     * Mètode auxiliar per reconstruir la llista de moviments
-     */
     private List<Moviment> reconstruirCami(NodeCerca nodeFinal) {
         List<Moviment> cami = new ArrayList<>();
         NodeCerca actual = nodeFinal;
