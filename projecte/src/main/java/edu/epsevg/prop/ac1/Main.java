@@ -64,7 +64,7 @@ public class Main {
         Heuristica hAvancadaD = new HeuristicaAvancada(mapaD);
         executarIRecopilarResultats("BFS", new CercaBFS(usarLNT), mapaD, "mapD", rows);
         executarIRecopilarResultats("DFS", new CercaDFS(usarLNT), mapaD, "mapD", rows);
-        // executarIRecopilarResultats("IDS", new CercaIDS(usarLNT), mapaD, "mapD", rows);
+        executarIRecopilarResultats("IDS", new CercaIDS(usarLNT), mapaD, "mapD", rows);
         executarIRecopilarResultats("A* Basica", new CercaAStar(usarLNT, hBasica), mapaD, "mapD", rows);
         executarIRecopilarResultats("A* Avancada", new CercaAStar(usarLNT, hAvancadaD), mapaD, "mapD", rows); 
         
